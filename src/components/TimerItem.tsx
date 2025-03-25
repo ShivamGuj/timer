@@ -8,6 +8,8 @@ import { EditTimerModal } from './EditTimerModal';
 import { TimerAudio } from '../utils/audio';
 import { TimerControls } from './TimerControls';
 import { TimerProgress } from './TimerProgress';
+import { Button } from './Button';
+import { TimerBackground } from './TimerBackground';
 
 interface TimerItemProps {
   timer: Timer;
@@ -19,61 +21,75 @@ export const TimerItem: React.FC<TimerItemProps> = ({ timer }) => {
   const intervalRef = useRef<number | null>(null);
   const timerAudio = TimerAudio.getInstance();
   const hasEndedRef = useRef(false);
+  const toastIdRef = useRef<string | number | null>(null);
 
   useEffect(() => {
     if (timer.isRunning) {
       intervalRef.current = window.setInterval(() => {
         updateTimer(timer.id);
         
+        // Check if timer has just reached zero or is about to reach zero
         if (timer.remainingTime <= 1 && !hasEndedRef.current) {
           hasEndedRef.current = true;
+          // Play sound immediately
           timerAudio.play().catch(console.error);
           
-          toast.success(`Timer "${timer.title}" has ended!`, {
-            duration: 5000,
+          toastIdRef.current = toast.success(`Timer "${timer.title}" has ended!`, {
+            duration: 0, // Don't auto-dismiss
             action: {
               label: 'Dismiss',
-              onClick: timerAudio.stop,
+              onClick: () => {
+                timerAudio.stop();
+              },
             },
+            onDismiss: () => {
+              timerAudio.stop();
+            }
           });
         }
       }, 1000);
+    } else {
+      // Reset hasEnded flag when timer is paused or reset
+      if (timer.remainingTime > 0) {
+        hasEndedRef.current = false;
+      }
     }
 
-    return () => clearInterval(intervalRef.current!);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [timer.isRunning, timer.id, timer.remainingTime, timer.title, timerAudio, updateTimer]);
 
   const handleRestart = () => {
     hasEndedRef.current = false;
+    if (toastIdRef.current) {
+      toast.dismiss(toastIdRef.current);
+      toastIdRef.current = null;
+      timerAudio.stop();
+    }
     restartTimer(timer.id);
   };
 
   const handleDelete = () => {
+    if (toastIdRef.current) {
+      toast.dismiss(toastIdRef.current);
+      toastIdRef.current = null;
+    }
     timerAudio.stop();
     deleteTimer(timer.id);
   };
 
   const handleToggle = () => {
-    if (timer.remainingTime <= 0) {
-      hasEndedRef.current = false;
-    }
     toggleTimer(timer.id);
   };
 
   return (
     <>
       <div className="relative bg-white rounded-xl shadow-lg p-6 transition-transform hover:scale-102 overflow-hidden">
-        <div className="absolute inset-0 w-full h-full -z-10 opacity-5">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="2" />
-            <path
-              d="M50 20V50L70 70"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
+        <TimerBackground />
         
         <div className="relative">
           <div className="flex justify-between items-start mb-4">
@@ -82,27 +98,27 @@ export const TimerItem: React.FC<TimerItemProps> = ({ timer }) => {
               <p className="text-gray-600 mt-1">{timer.description}</p>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => setIsEditModalOpen(true)}
-                className="p-2 rounded-full hover:bg-blue-50 text-blue-500 transition-colors"
+                icon={<Pencil className="w-5 h-5" />}
+                variant="secondary"
+                size="icon"
                 title="Edit Timer"
-              >
-                <Pencil className="w-5 h-5" />
-              </button>
-              <button
+              />
+              <Button
                 onClick={handleRestart}
-                className="p-2 rounded-full hover:bg-blue-50 text-blue-500 transition-colors"
+                icon={<RotateCcw className="w-5 h-5" />}
+                variant="secondary"
+                size="icon"
                 title="Restart Timer"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </button>
-              <button
+              />
+              <Button
                 onClick={handleDelete}
-                className="p-2 rounded-full hover:bg-red-50 text-red-500 transition-colors"
+                icon={<Trash2 className="w-5 h-5" />}
+                variant="danger"
+                size="icon"
                 title="Delete Timer"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              />
             </div>
           </div>
           <div className="flex flex-col items-center mt-6">

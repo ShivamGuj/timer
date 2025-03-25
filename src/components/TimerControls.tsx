@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Button } from './Button';
 
 interface TimerControlsProps {
   isRunning: boolean;
@@ -20,31 +21,23 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   
   if (isCompleted) {
     return (
-      <button
+      <Button
         onClick={onRestart}
-        className="p-3 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+        variant="secondary"
+        size="icon"
+        icon={<RotateCcw className="w-6 h-6" />}
         title="Restart Timer"
-      >
-        <RotateCcw className="w-6 h-6" />
-      </button>
+      />
     );
   }
 
   return (
-    <button
+    <Button
       onClick={onToggle}
-      className={`p-3 rounded-full transition-colors ${
-        isRunning
-          ? 'bg-red-100 text-red-600 hover:bg-red-200'
-          : 'bg-green-100 text-green-600 hover:bg-green-200'
-      }`}
+      variant={isRunning ? 'danger' : 'success'}
+      size="icon"
+      icon={isRunning ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
       title={isRunning ? 'Pause Timer' : 'Start Timer'}
-    >
-      {isRunning ? (
-        <Pause className="w-6 h-6" />
-      ) : (
-        <Play className="w-6 h-6" />
-      )}
-    </button>
+    />
   );
 };
